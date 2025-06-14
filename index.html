@@ -314,17 +314,18 @@
     const defaultCsvUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQcDfXHv10FfSsHJRMWa8bRVb-sYuFOsdKIY_JL70djlUukT6f8Xs4kTv-QEpVbzQYFM-Dl-ICipWUo/pub?output=csv';
 
     document.addEventListener('DOMContentLoaded', () => {
+        // 頁面載入時，嘗試從預設 URL 載入 CSV
         fetchCsvFromUrl(defaultCsvUrl)
             .then(parsedOptions => {
                 if (parsedOptions.length > 0) {
                     initWheel(parsedOptions);
                 } else {
-                    initWheel(defaultWheelOptions);
+                    initWheel(defaultWheelOptions); // 如果 URL 載入失敗或為空，則使用預設硬編碼選項
                 }
             })
             .catch(error => {
                 console.error("載入預設 CSV 失敗:", error);
-                initWheel(defaultWheelOptions);
+                initWheel(defaultWheelOptions); // 載入失敗，則使用預設硬編碼選項
             });
     });
 
@@ -355,15 +356,14 @@
 
         const baseDim = Math.min(containerWidth, containerHeight);
 
-        // 這裡設定一個較大的字體用於測量，即使實際繪製時會更小
-        ctx.font = `20px Arial`; // 稍微調大測量字體，給文字更多預留空間
+        ctx.font = `16px Arial`;
         const maxTextWidth = Math.max(...options.map(o => ctx.measureText(o).width));
 
-        const textToLineBuffer = 5; // 增加文字與扇形邊界的緩衝
+        const textToLineBuffer = 3;
         const estimatedTextSpace = maxTextWidth + textToLineBuffer;
 
         radius = (baseDim / 2) - estimatedTextSpace;
-        if (radius < 50) radius = 50; // 確保半徑不會過小
+        if (radius < 50) radius = 50;
 
         const finalCanvasDim = 2 * (radius + estimatedTextSpace + 2);
 
@@ -451,22 +451,12 @@
         ctx.translate(centerX, centerY);
         ctx.rotate(ang + arc / 2);
 
-        // 調整字體大小的計算邏輯
-        const minFontSize = 3; // 更小的最小字體，以適應大量選項
-        const maxFontSize = 18; // 更大的最大字體
-        // 嘗試根據弧長和選項長度動態調整字體
-        const estimatedTextLength = opt.length * (maxFontSize / 2); // 估計文字所需像素長度
-        let dynamicFontSize = (arc * radius * 0.9) / (estimatedTextLength / (maxFontSize / 2));
-        dynamicFontSize = Math.min(maxFontSize, Math.max(minFontSize, dynamicFontSize));
+        const minFontSize = 4;
+        const maxFontSize = 12;
+        const dynamicFontSize = (arc * radius * 0.5) / (opt.length * 0.04);
+        const textFontSize = Math.min(maxFontSize, Math.max(minFontSize, dynamicFontSize));
 
-        // 如果選項數量非常多（例如超過100個），則不繪製文字，只繪製顏色扇形，以避免畫面過於混亂
-        // 您可以根據需要調整這個閾值
-        if (options.length > 200) { // 提高閾值，讓更多文字顯示，但還是會很小
-             dynamicFontSize = minFontSize; // 即使只顯示，也保持最小字體
-        }
-
-
-        ctx.font = `${dynamicFontSize}px Arial`;
+        ctx.font = `${textFontSize}px Arial`;
         ctx.fillStyle = '#f00';
         ctx.strokeStyle = 'rgba(0,0,0,0.005)';
         ctx.lineWidth = 0.005;
@@ -474,43 +464,29 @@
         ctx.textBaseline = 'middle';
 
         const textX = radius + 3;
-        // 只有當扇形足夠大時才繪製文字，或者將文字繪製為非常小的點以表示存在
-        if (arc > (Math.PI * 2 / 200)) { // 如果扇形角度大於 1.8 度 (360/200)
-            ctx.fillText(opt, textX, 0);
-            ctx.strokeText(opt, textX, 0);
-        } else if (options.length <= 200) { // 即使很小，如果總數不多還是繪製，但可能看不清
-            ctx.fillText(opt, textX, 0);
-        }
-        // 如果 options.length > 200 且 arc 很小，則不繪製文字，這樣可以減輕渲染負擔並使扇形更清晰
+        ctx.fillText(opt, textX, 0);
+        ctx.strokeText(opt, textX, 0);
 
         ctx.restore();
       });
 
-      // 將 ctx 轉換重置回原始比例，以便繪製指針和中心點
       ctx.setTransform(window.devicePixelRatio || 1, 0, 0, window.devicePixelRatio || 1, 0, 0);
 
-      // --- 調整箭頭大小和位置 ---
-      const pointerBaseWidth = 80; // 調整箭頭的底部寬度，讓它更寬
-      const pointerHeight = 120;   // 調整箭頭的高度，讓它更高
+      const pointerBaseWidth = 50;
+      const pointerHeight = 50;
 
       const visualCenterX = (canvas.width / (window.devicePixelRatio || 1)) / 2;
       const visualCenterY = (canvas.height / (window.devicePixelRatio || 1)) / 2;
 
-      // 重新計算最外側文本邊緣的 Y 座標，考慮到文本實際繪製的範圍
-      // 因為文本從 radius + 3 開始繪製，並加上其寬度
-      const currentMaxTextLength = Math.max(...options.map(o => ctx.measureText(o).width));
-      const outermostTextEdgeYCoord = visualCenterY - (radius + 3 + currentMaxTextLength);
+      const approximateMaxTextLength = 100;
+      const outermostTextEdge = radius + 3 + approximateMaxTextLength;
 
-      // 將箭頭的尖端放置在轉盤最上邊界（含文字區域）上方一定距離
-      const pointerTipY = outermostTextEdgeYCoord - 20; // 20px 的間隔
-
-      // 箭頭底部的 Y 座標
-      const pointerBaseY = pointerTipY + pointerHeight;
+      const pointerY = visualCenterY - outermostTextEdge - (pointerHeight * 0.5) - 5;
 
       ctx.beginPath();
-      ctx.moveTo(visualCenterX - pointerBaseWidth / 2, pointerBaseY); // 左下角
-      ctx.lineTo(visualCenterX + pointerBaseWidth / 2, pointerBaseY); // 右下角
-      ctx.lineTo(visualCenterX, pointerTipY);                         // 頂點
+      ctx.moveTo(visualCenterX - pointerBaseWidth / 2, pointerY);
+      ctx.lineTo(visualCenterX + pointerBaseWidth / 2, pointerY);
+      ctx.lineTo(visualCenterX, visualCenterY - outermostTextEdge - 5);
       ctx.closePath();
       ctx.fillStyle = 'red';
       ctx.fill();
@@ -518,7 +494,6 @@
       ctx.lineWidth = 2;
       ctx.stroke();
 
-      // 繪製中心圓（中心樞紐）
       ctx.beginPath();
       ctx.arc(visualCenterX, visualCenterY, radius * 0.1, 0, Math.PI * 2);
       ctx.fillStyle = 'black';
@@ -562,24 +537,20 @@
       const winningSegmentIndex = Math.floor(Math.random() * options.length);
       lastPickedIndex = winningSegmentIndex;
 
-      // 調整目標角度計算，確保指針指向中獎扇形的中央
-      const targetAngleAtPointer = 1.5 * Math.PI; // 指針固定在上方，對應的弧度
+      const targetAngleAtPointer = 1.5 * Math.PI;
       const winningSegmentCenterAngle = (winningSegmentIndex * arc) + (arc / 2);
 
       let finalStartAngle = targetAngleAtPointer - winningSegmentCenterAngle;
 
-      // 確保 finalStartAngle 為正數
       finalStartAngle = (finalStartAngle % (Math.PI * 2) + Math.PI * 2) % (Math.PI * 2);
 
-      // 加上額外的旋轉圈數，使其看起來更像是真的在轉
       finalStartAngle += (Math.floor(totalRotation / (Math.PI * 2)) + 10) * (Math.PI * 2);
-
 
       function animateSpin(currentTime) {
         if (!startTimestamp) startTimestamp = currentTime;
         const elapsed = currentTime - startTimestamp;
         const progress = Math.min(elapsed / duration, 1);
-        const easedProgress = 1 - Math.pow(1 - progress, 3); // 使用緩和曲線
+        const easedProgress = 1 - Math.pow(1 - progress, 3);
 
         startAngle = easedProgress * finalStartAngle;
         drawWheel();
