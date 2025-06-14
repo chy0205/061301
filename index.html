@@ -1,662 +1,1289 @@
 <!DOCTYPE html>
+
 <html>
+
 <head>
+
   <base target="_blank">
+
   <title>幸運轉盤</title>
+
   <style>
+
     html, body {
+
       margin: 0;
+
       padding: 0;
+
       width: 100%;
+
       height: 100%;
+
       overflow: hidden; /* 防止滾動條 */
+
       display: flex;
+
       flex-direction: column; /* 垂直堆疊內容 */
+
       justify-content: center;
+
       align-items: center;
+
       font-family: Arial, sans-serif;
+
       background-color: #f0f0f0;
+
     }
+
+
 
     #main-wrapper {
+
       display: flex;
+
       width: 100%;
+
       height: 100%;
+
       align-items: center; /* 垂直居中對齊 */
+
       justify-content: space-around;
+
       padding: 10px;
+
       box-sizing: border-box;
+
       padding-top: 10vh; /* 增加頂部填充，使內容整體向下移動更多 */
+
     }
+
+
 
     #wheel-area {
+
       display: flex;
+
       flex-direction: column;
+
       justify-content: center; /* 讓轉盤區域內容居中 */
+
       align-items: center;
+
       flex-grow: 1;
+
       max-width: 75%; /* 維持最大寬度，為右側面板留出空間 */
+
       position: relative;
+
       padding-bottom: 0;
+
     }
+
+
 
     #wheel-container {
+
       width: calc(min(99vmin, 99vh - 30px));
+
       height: calc(min(99vmin, 99vh - 30px));
+
       max-width: 100%;
+
       max-height: calc(100vh - 30px);
+
       position: relative;
+
       display: flex;
+
       justify-content: center;
+
       align-items: center;
+
       overflow: hidden;
+
       border-radius: 50%;
+
       background: #fff;
+
       box-shadow: 0 0 15px rgba(0,0,0,0.2);
+
     }
+
+
 
     canvas {
+
       display: block;
+
       max-width: 100%;
+
       max-height: 100%;
+
       position: absolute;
+
       top: 50%;
+
       left: 50%;
+
       transform: translate(-50%, -50%);
+
     }
+
+
 
     #controls-and-history {
+
       display: flex;
+
       flex-direction: column;
+
       align-items: center;
+
       margin-left: 20px;
+
       min-width: 200px;
+
       justify-content: flex-start; /* 讓內容從上方開始排列 */
+
       height: 100%;
+
       box-sizing: border-box;
+
       padding-top: 10vh; /* 與轉盤對齊，向下移動 */
+
     }
+
+
 
     #button-container {
+
       display: flex;
+
       flex-direction: column;
+
       gap: 15px;
+
       margin-bottom: 30px;
+
     }
+
+
 
     #spinBtn, #resetBtn, #loadUrlOptionsBtnTrigger {
+
       position: static;
+
       transform: none;
+
       padding: 15px 30px;
+
       font-size: 22px;
+
       min-width: 150px;
+
     }
+
     #spinBtn {
+
       background-color: #4CAF50;
+
       color: white;
+
     }
+
     #spinBtn:hover:not(:disabled) {
+
       background-color: #45a049;
+
     }
+
     #spinBtn:disabled {
+
       background-color: #ccc;
+
       cursor: not-allowed;
+
     }
+
     #resetBtn {
+
       background-color: #f44336;
+
       color: white;
+
     }
+
     #resetBtn:hover {
+
       background-color: #da190b;
+
     }
+
     #loadUrlOptionsBtnTrigger {
+
         background-color: #007bff;
+
         color: white;
+
     }
+
     #loadUrlOptionsBtnTrigger:hover {
+
         background-color: #0056b3;
+
     }
+
+
 
     #urlInputContainer {
+
         margin-top: 10px;
+
         display: none; /* 預設隱藏 */
+
         flex-direction: column;
+
         gap: 5px;
+
         align-items: center;
+
         width: 100%;
+
         max-width: 300px;
+
     }
+
     #csvUrlInput {
+
         padding: 8px;
+
         border: 1px solid #ddd;
+
         border-radius: 5px;
+
         width: calc(100% - 16px);
+
         box-sizing: border-box;
+
     }
+
     #loadUrlBtn {
+
         padding: 10px 20px;
+
         font-size: 16px;
+
         background-color: #28a745;
+
         color: white;
+
         border: none;
+
         border-radius: 5px;
+
         cursor: pointer;
+
         width: calc(100% - 16px);
+
         box-sizing: border-box;
+
     }
+
     #loadUrlBtn:hover {
+
         background-color: #218838;
+
     }
+
+
 
     #result {
+
       position: absolute;
+
       top: 50%;
+
       left: 50%;
+
       transform: translate(-50%, -50%);
+
       font-size: 32px;
+
       font-weight: bold;
+
       color: #c00;
+
       background-color: rgba(255, 255, 255, 0.9);
+
       padding: 15px 30px;
+
       border-radius: 12px;
+
       box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+
       text-align: center;
+
       white-space: nowrap;
+
       opacity: 0;
+
       transition: opacity 0.5s ease;
+
       pointer-events: none;
+
     }
+
     #result.show {
+
       opacity: 1;
+
     }
+
+
 
     #history-container {
+
       width: 280px;
+
       max-height: calc(100vh - 200px);
+
       overflow-y: auto;
+
       background: rgba(255,255,255,0.95);
+
       padding: 15px;
+
       border: 1px solid #ddd;
+
       border-radius: 8px;
+
       box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+
       z-index: 20;
+
       margin-top: 20px;
+
     }
+
     #history-container h3 {
+
       margin-top: 0;
+
       margin-bottom: 10px;
+
       font-size: 18px;
+
       text-align: center;
+
       color: #333;
+
     }
+
     #history {
+
       list-style: none;
+
       padding: 0;
+
       margin: 0;
+
     }
+
     #history li {
+
       padding: 5px 0;
+
       border-bottom: 1px dashed #eee;
+
       color: #555;
+
     }
+
     #history li:last-child {
+
       border-bottom: none;
+
     }
+
+
 
     /* 媒體查詢，適用於較小的螢幕 */
+
     @media (max-width: 900px) {
+
       #main-wrapper {
+
         flex-direction: column;
+
         justify-content: flex-start;
+
         padding: 10px;
+
         padding-top: 20px;
+
       }
+
       #wheel-area {
+
         max-width: 100%;
+
         height: 60vh;
+
         padding-bottom: 0;
+
       }
+
       #wheel-container {
+
         width: 80vmin;
+
         height: 80vmin;
+
         max-height: calc(100% - 150px);
+
       }
+
       #controls-and-history {
+
         flex-direction: column;
+
         margin-left: 0;
+
         margin-top: 20px;
+
         width: calc(100% - 20px);
+
         max-height: 30vh;
+
         order: 2;
+
         padding-top: 0;
+
       }
+
       #button-container {
+
         flex-direction: row;
+
         justify-content: center;
+
         gap: 10px;
+
         margin-bottom: 20px;
+
       }
+
       #spinBtn, #resetBtn, #loadUrlOptionsBtnTrigger {
+
         font-size: 18px;
+
         padding: 10px 20px;
+
         min-width: unset;
+
         flex: 1;
+
       }
+
       #urlInputContainer {
+
           margin-top: 10px;
+
       }
+
       #history-container {
+
         width: 100%;
+
       }
+
     }
+
   </style>
+
 </head>
+
 <body>
+
   <div id="main-wrapper">
+
     <div id="wheel-area">
+
       <div id="wheel-container">
+
         <canvas id="wheel"></canvas>
+
         <div id="result"></div>
+
       </div>
+
     </div>
+
+
 
     <div id="controls-and-history">
+
       <div id="button-container">
+
         <button id="spinBtn">轉一下！</button>
+
         <button id="resetBtn">重新開始</button>
+
         <button id="loadUrlOptionsBtnTrigger">載入 URL 選項</button>
+
       </div>
+
+
 
       <div id="urlInputContainer">
+
         <input type="text" id="csvUrlInput" placeholder="貼上 CSV 檔案的 URL">
+
         <button id="loadUrlBtn">載入</button>
+
       </div>
+
+
 
       <div id="history-container">
+
         <h3>中獎紀錄</h3>
+
         <ul id="history"></ul>
+
       </div>
+
     </div>
+
   </div>
 
+
+
   <script>
+
     let options = [], originalOptions = [], colors = [];
+
     let arc = 0, radius = 0, startAngle = 0, spinning = false;
+
     let lastPickedIndex = -1;
 
+
+
     const canvas = document.getElementById('wheel');
+
     const ctx    = canvas.getContext('2d');
+
     const wheelContainer = document.getElementById('wheel-container');
+
     const resultDiv = document.getElementById('result');
+
     const spinBtn = document.getElementById('spinBtn');
+
     const resetBtn = document.getElementById('resetBtn');
+
     const loadUrlOptionsBtnTrigger = document.getElementById('loadUrlOptionsBtnTrigger');
+
     const urlInputContainer = document.getElementById('urlInputContainer');
+
     const csvUrlInput = document.getElementById('csvUrlInput');
+
     const loadUrlBtn = document.getElementById('loadUrlBtn');
+
     const historyList = document.getElementById('history');
 
+
+
     // 預設選項，如果沒有從 URL 載入檔案時使用
+
     const defaultWheelOptions = [
+
       "蘋果",
+
       "香蕉",
+
       "橘子",
+
       "葡萄",
+
       "草莓",
+
       "西瓜",
+
       "芒果",
+
       "鳳梨",
+
       "哈密瓜",
+
       "櫻桃"
+
     ];
 
+
+
     // **這是您提供的 Google Sheets CSV URL，頁面載入時會自動從這裡獲取選項**
+
     const defaultCsvUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQcDfXHv10FfSsHJRMWa8bRVb-sYuFOsdKIY_JL70djlUukT6f8Xs4kTv-QEpVbzQYFM-Dl-ICipWUo/pub?output=csv';
 
-    // Fisher-Yates (Knuth) 洗牌演算法
-    function shuffleArray(array) {
-      for (let i = array.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [array[i], array[j]] = [array[j], array[i]]; // 交換元素
-      }
-    }
+
 
     document.addEventListener('DOMContentLoaded', () => {
+
         // 頁面載入時，嘗試從預設 URL 載入 CSV
+
         fetchCsvFromUrl(defaultCsvUrl)
+
             .then(parsedOptions => {
+
                 if (parsedOptions.length > 0) {
+
                     initWheel(parsedOptions);
+
                 } else {
+
                     initWheel(defaultWheelOptions); // 如果 URL 載入失敗或為空，則使用預設硬編碼選項
+
                 }
+
             })
+
             .catch(error => {
+
                 console.error("載入預設 CSV 失敗:", error);
+
                 initWheel(defaultWheelOptions); // 載入失敗，則使用預設硬編碼選項
+
             });
+
     });
+
+
 
     let resizeTimer;
+
     window.addEventListener('resize', () => {
+
       clearTimeout(resizeTimer);
+
       resizeTimer = setTimeout(() => {
+
         if (options.length > 0) {
+
           recalculateAndDrawWheel();
+
         } else if (originalOptions.length > 0) {
+
           initWheel(originalOptions);
+
         }
+
       }, 250);
+
     });
 
+
+
     function recalculateAndDrawWheel() {
+
         if (options.length === 0) {
+
             resultDiv.innerText = "所有選項都已抽出！請點擊「重新開始」或「載入 URL 選項」。";
+
             resultDiv.classList.add('show');
+
             spinBtn.disabled = true;
+
             spinBtn.innerText = "已抽完";
+
             drawWheel();
+
             return;
+
         }
 
+
+
         const containerWidth = wheelContainer.offsetWidth;
+
         const containerHeight = wheelContainer.offsetHeight;
+
+
 
         const baseDim = Math.min(containerWidth, containerHeight);
 
+
+
         ctx.font = `16px Arial`;
+
         const maxTextWidth = Math.max(...options.map(o => ctx.measureText(o).width));
 
+
+
         const textToLineBuffer = 3;
+
         const estimatedTextSpace = maxTextWidth + textToLineBuffer;
 
+
+
         radius = (baseDim / 2) - estimatedTextSpace;
+
         if (radius < 50) radius = 50;
+
+
 
         const finalCanvasDim = 2 * (radius + estimatedTextSpace + 2);
 
+
+
         const ratio = window.devicePixelRatio || 1;
+
         canvas.width  = finalCanvasDim * ratio;
+
         canvas.height = finalCanvasDim * ratio;
+
+
 
         ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
 
+
+
         canvas.centerX = finalCanvasDim / 2;
+
         canvas.centerY = finalCanvasDim / 2;
 
+
+
         arc = Math.PI * 2 / options.length;
+
         colors = options.map(() =>
+
             `hsl(${Math.random()*360}, ${60+Math.random()*30}%, ${50+Math.random()*10}%)`
+
         );
 
+
+
         drawWheel();
+
     }
+
+
+
 
 
     function initWheel(data) {
+
       if (!data || data.length === 0) {
+
           resultDiv.innerText = "沒有可用的選項！請載入有效的 CSV 檔案。";
+
           resultDiv.classList.add('show');
+
           spinBtn.disabled = true;
+
           spinBtn.innerText = "沒有選項";
+
           options = [];
+
           originalOptions = [];
+
           drawWheel();
+
           return;
+
       }
 
+
+
       originalOptions = [...data];
-      
-      // 在複製到 options 之前先進行洗牌
+
       options = [...data];
-      shuffleArray(options); // <--- 新增這行來洗牌
 
       lastPickedIndex = -1;
+
       resultDiv.innerText = "";
+
       resultDiv.classList.remove('show');
+
       spinBtn.disabled = false;
+
       spinBtn.innerText = "轉一下！";
+
       historyList.innerHTML = "";
 
+
+
       recalculateAndDrawWheel();
+
     }
 
+
+
     function drawWheel() {
+
       const centerX = canvas.centerX;
+
       const centerY = canvas.centerY;
+
+
 
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
+
+
       if (options.length === 0) {
+
         ctx.fillStyle = '#333';
+
         ctx.font = '24px Arial';
+
         ctx.textAlign = 'center';
+
         ctx.textBaseline = 'middle';
+
         ctx.fillText("沒有選項了！", centerX, centerY);
+
         return;
+
       }
 
+
+
       ctx.lineWidth = 2;
+
       ctx.strokeStyle = '#000';
 
+
+
       options.forEach((opt,i) => {
+
         const ang = startAngle + i * arc;
+
         const endAng = ang + arc;
 
+
+
         ctx.beginPath();
+
         ctx.moveTo(centerX, centerY);
+
         ctx.arc(centerX, centerY, radius, ang, endAng);
+
         ctx.closePath();
+
         ctx.fillStyle = colors[i];
+
         ctx.fill();
+
         ctx.stroke();
+
+
 
         const radialLineLength = radius;
+
         const outerXLine = centerX + Math.cos(ang + arc / 2) * radialLineLength;
+
         const outerYLine = centerY + Math.sin(ang + arc / 2) * radialLineLength;
+
         ctx.beginPath();
+
         ctx.moveTo(centerX, centerY);
+
         ctx.lineTo(outerXLine, outerYLine);
+
         ctx.stroke();
 
+
+
         ctx.save();
+
         ctx.translate(centerX, centerY);
+
         ctx.rotate(ang + arc / 2);
 
+
+
         const minFontSize = 4;
+
         const maxFontSize = 12;
+
         const dynamicFontSize = (arc * radius * 0.5) / (opt.length * 0.04);
+
         const textFontSize = Math.min(maxFontSize, Math.max(minFontSize, dynamicFontSize));
 
+
+
         ctx.font = `${textFontSize}px Arial`;
+
         ctx.fillStyle = '#f00';
+
         ctx.strokeStyle = 'rgba(0,0,0,0.005)';
+
         ctx.lineWidth = 0.005;
+
         ctx.textAlign = 'left';
+
         ctx.textBaseline = 'middle';
 
+
+
         const textX = radius + 3;
+
         ctx.fillText(opt, textX, 0);
+
         ctx.strokeText(opt, textX, 0);
 
+
+
         ctx.restore();
+
       });
+
+
 
       ctx.setTransform(window.devicePixelRatio || 1, 0, 0, window.devicePixelRatio || 1, 0, 0);
 
+
+
       const pointerBaseWidth = 50;
+
       const pointerHeight = 50;
 
+
+
       const visualCenterX = (canvas.width / (window.devicePixelRatio || 1)) / 2;
+
       const visualCenterY = (canvas.height / (window.devicePixelRatio || 1)) / 2;
 
+
+
       const approximateMaxTextLength = 100;
+
       const outermostTextEdge = radius + 3 + approximateMaxTextLength;
+
+
 
       const pointerY = visualCenterY - outermostTextEdge - (pointerHeight * 0.5) - 5;
 
-      ctx.beginPath();
-      ctx.moveTo(visualCenterX - pointerBaseWidth / 2, pointerY);
-      ctx.lineTo(visualCenterX + pointerBaseWidth / 2, pointerY);
-      ctx.lineTo(visualCenterX, visualCenterY - outermostTextEdge - 5);
-      ctx.closePath();
-      ctx.fillStyle = 'red';
-      ctx.fill();
-      ctx.strokeStyle = '#333';
-      ctx.lineWidth = 2;
-      ctx.stroke();
+
 
       ctx.beginPath();
-      ctx.arc(visualCenterX, visualCenterY, radius * 0.1, 0, Math.PI * 2);
-      ctx.fillStyle = 'black';
+
+      ctx.moveTo(visualCenterX - pointerBaseWidth / 2, pointerY);
+
+      ctx.lineTo(visualCenterX + pointerBaseWidth / 2, pointerY);
+
+      ctx.lineTo(visualCenterX, visualCenterY - outermostTextEdge - 5);
+
+      ctx.closePath();
+
+      ctx.fillStyle = 'red';
+
       ctx.fill();
+
       ctx.strokeStyle = '#333';
+
       ctx.lineWidth = 2;
+
       ctx.stroke();
+
+
+
+      ctx.beginPath();
+
+      ctx.arc(visualCenterX, visualCenterY, radius * 0.1, 0, Math.PI * 2);
+
+      ctx.fillStyle = 'black';
+
+      ctx.fill();
+
+      ctx.strokeStyle = '#333';
+
+      ctx.lineWidth = 2;
+
+      ctx.stroke();
+
     }
+
+
+
 
 
     document.getElementById('spinBtn').onclick = ()=>{
+
       if (spinning || options.length === 0) {
+
         if (options.length === 0) {
+
             resultDiv.innerText = "所有選項都已抽出！請點擊「重新開始」或「載入 URL 選項」。";
+
             resultDiv.classList.add('show');
+
         }
+
         return;
+
       }
 
-      // 當上一次有抽取結果時，從 options 移除該結果
+
+
       if (lastPickedIndex !== -1) {
+
           options.splice(lastPickedIndex, 1);
-          lastPickedIndex = -1; // 重置 lastPickedIndex
-          recalculateAndDrawWheel(); // 重新繪製轉盤以反映選項變化
+
+          lastPickedIndex = -1;
+
+          recalculateAndDrawWheel();
+
       }
+
+
 
       if (options.length === 0) {
+
           resultDiv.innerText = "所有選項都已抽出！請點擊「重新開始」或「載入 URL 選項」。";
+
           resultDiv.classList.add('show');
+
           spinBtn.disabled = true;
+
           spinBtn.innerText = "已抽完";
+
           return;
+
       }
+
+
 
       spinning = true;
+
       resultDiv.classList.remove('show');
 
-      const totalRotation = Math.random()*360 + 3600; // 確保至少轉動 10 圈
-      const duration = 5000; // 轉動時間 5 秒
+
+
+      const totalRotation = Math.random()*360 + 3600;
+
+      const duration = 5000;
+
       let startTimestamp;
 
-      // 隨機選擇一個獲勝的扇區索引
-      const winningSegmentIndex = Math.floor(Math.random() * options.length);
-      lastPickedIndex = winningSegmentIndex; // 儲存這次中獎的索引
 
-      // 計算目標角度，讓指針指向中獎扇區的中心
-      const targetAngleAtPointer = 1.5 * Math.PI; // 轉盤指針指向的方向 (上方)
+
+      const winningSegmentIndex = Math.floor(Math.random() * options.length);
+
+      lastPickedIndex = winningSegmentIndex;
+
+
+
+      const targetAngleAtPointer = 1.5 * Math.PI;
+
       const winningSegmentCenterAngle = (winningSegmentIndex * arc) + (arc / 2);
 
-      // 計算轉盤需要旋轉到的最終角度，以使中獎選項對準指針
+
+
       let finalStartAngle = targetAngleAtPointer - winningSegmentCenterAngle;
 
-      // 將 finalStartAngle 調整到 0 到 2*PI 之間，然後加上額外的旋轉圈數
+
+
       finalStartAngle = (finalStartAngle % (Math.PI * 2) + Math.PI * 2) % (Math.PI * 2);
+
+
+
       finalStartAngle += (Math.floor(totalRotation / (Math.PI * 2)) + 10) * (Math.PI * 2);
 
+
+
       function animateSpin(currentTime) {
+
         if (!startTimestamp) startTimestamp = currentTime;
+
         const elapsed = currentTime - startTimestamp;
+
         const progress = Math.min(elapsed / duration, 1);
-        // 使用緩動函數，使轉動逐漸變慢
-        const easedProgress = 1 - Math.pow(1 - progress, 3); // 三次方緩出
+
+        const easedProgress = 1 - Math.pow(1 - progress, 3);
+
+
 
         startAngle = easedProgress * finalStartAngle;
+
         drawWheel();
 
+
+
         if (progress < 1) {
+
           requestAnimationFrame(animateSpin);
+
         } else {
+
           spinning = false;
+
           showResult(winningSegmentIndex);
+
         }
+
       }
+
       requestAnimationFrame(animateSpin);
+
     };
+
+
 
     function showResult(winnerIndex) {
-      const pick = options[winnerIndex]; // 注意這裡仍然是使用當前 options 陣列的 winnerIndex
+
+      const pick = options[winnerIndex];
+
+
 
       resultDiv.innerText = `你抽中了：「${pick}」`;
+
       resultDiv.classList.add('show');
 
+
+
       const li = document.createElement('li');
+
       li.textContent = pick;
+
       historyList.prepend(li);
+
     }
+
+
 
     document.getElementById('resetBtn').onclick = () => {
-      initWheel(originalOptions); // 重置時使用原始選項（已洗牌）
+
+      initWheel(originalOptions);
+
     };
+
+
 
     loadUrlOptionsBtnTrigger.onclick = () => {
+
         if (urlInputContainer.style.display === 'flex') {
+
             urlInputContainer.style.display = 'none';
+
         } else {
+
             urlInputContainer.style.display = 'flex';
+
         }
+
         csvUrlInput.value = defaultCsvUrl; // 顯示預設 URL
+
         resultDiv.innerText = "";
+
         resultDiv.classList.remove('show');
+
     };
+
+
 
     loadUrlBtn.onclick = () => {
+
         const url = csvUrlInput.value.trim();
+
         if (!url) {
+
             alert('請輸入一個有效的 CSV 檔案 URL。');
+
             return;
+
         }
+
+
 
         fetchCsvFromUrl(url)
+
             .then(parsedOptions => {
+
                 if (parsedOptions.length > 0) {
-                    initWheel(parsedOptions); // 載入新選項並洗牌
+
+                    initWheel(parsedOptions);
+
                     urlInputContainer.style.display = 'none';
+
                 } else {
+
                     alert('從該 URL 載入的 CSV 檔案中沒有找到有效的選項。請確保每行至少有一個值。');
+
                     initWheel(defaultWheelOptions);
+
                 }
+
             })
+
             .catch(error => {
+
                 alert('載入 CSV 檔案時發生錯誤：' + error.message + '\n請檢查 URL 或網路連線。');
+
                 console.error("Fetch error:", error);
+
                 initWheel(defaultWheelOptions);
+
             });
+
     };
 
+
+
     async function fetchCsvFromUrl(url) {
+
         try {
+
             const response = await fetch(url);
+
             if (!response.ok) {
+
                 throw new Error(`HTTP 錯誤! 狀態: ${response.status}`);
+
             }
+
             const csvContent = await response.text();
+
             return parseCSV(csvContent);
+
         } catch (error) {
+
             console.error("從 URL 獲取 CSV 失敗:", error);
+
             throw error;
+
         }
+
     }
 
+
+
     function parseCSV(csvString) {
+
         const lines = csvString.split(/\r?\n/).filter(line => line.trim() !== '');
+
         const parsedOptions = [];
+
         lines.forEach(line => {
+
             const trimmedLine = line.trim();
+
             if (trimmedLine) {
+
                 parsedOptions.push(trimmedLine);
+
             }
+
         });
+
         return parsedOptions;
+
     }
+
   </script>
+
 </body>
+
 </html>
