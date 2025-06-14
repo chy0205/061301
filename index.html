@@ -264,7 +264,7 @@
       <div id="button-container">
         <button id="spinBtn">轉一下！</button>
         <button id="resetBtn">重新開始</button>
-        <button id="loadUrlOptionsBtnTrigger">載入選項</button>
+        <button id="loadUrlOptionsBtnTrigger">載入 URL 選項</button>
       </div>
 
       <div id="urlInputContainer">
@@ -310,22 +310,21 @@
       "櫻桃"
     ];
 
-    // **這是您提供的 Google Sheets CSV URL，頁面載入時會自動從這裡獲取選項**
+    // 這是您提供的 Google Sheets CSV URL，頁面載入時會自動從這裡獲取選項
     const defaultCsvUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQcDfXHv10FfSsHJRMWa8bRVb-sYuFOsdKIY_JL70djlUukT6f8Xs4kTv-QEpVbzQYFM-Dl-ICipWUo/pub?output=csv';
 
     document.addEventListener('DOMContentLoaded', () => {
-        // 頁面載入時，嘗試從預設 URL 載入 CSV
         fetchCsvFromUrl(defaultCsvUrl)
             .then(parsedOptions => {
                 if (parsedOptions.length > 0) {
                     initWheel(parsedOptions);
                 } else {
-                    initWheel(defaultWheelOptions); // 如果 URL 載入失敗或為空，則使用預設硬編碼選項
+                    initWheel(defaultWheelOptions);
                 }
             })
             .catch(error => {
                 console.error("載入預設 CSV 失敗:", error);
-                initWheel(defaultWheelOptions); // 載入失敗，則使用預設硬編碼選項
+                initWheel(defaultWheelOptions);
             });
     });
 
@@ -340,6 +339,16 @@
         }
       }, 250);
     });
+
+    // === 新增：洗牌函數 (Fisher-Yates shuffle) ===
+    function shuffleArray(array) {
+        for (let i = array.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [array[i], array[j]] = [array[j], array[i]]; // 交換元素
+        }
+        return array;
+    }
+    // ======================================
 
     function recalculateAndDrawWheel() {
         if (options.length === 0) {
@@ -356,10 +365,10 @@
 
         const baseDim = Math.min(containerWidth, containerHeight);
 
-        ctx.font = `16px Arial`;
+        ctx.font = `20px Arial`;
         const maxTextWidth = Math.max(...options.map(o => ctx.measureText(o).width));
 
-        const textToLineBuffer = 3;
+        const textToLineBuffer = 5;
         const estimatedTextSpace = maxTextWidth + textToLineBuffer;
 
         radius = (baseDim / 2) - estimatedTextSpace;
@@ -397,8 +406,12 @@
           return;
       }
 
-      originalOptions = [...data];
-      options = [...data];
+      // === 修改：在複製選項前先洗牌 ===
+      const shuffledData = shuffleArray([...data]); // 複製一份再洗牌
+
+      originalOptions = [...shuffledData]; // 儲存洗牌後的原始選項
+      options = [...shuffledData];         // 從洗牌後的選項開始
+
       lastPickedIndex = -1;
       resultDiv.innerText = "";
       resultDiv.classList.remove('show');
@@ -451,12 +464,19 @@
         ctx.translate(centerX, centerY);
         ctx.rotate(ang + arc / 2);
 
-        const minFontSize = 4;
-        const maxFontSize = 12;
-        const dynamicFontSize = (arc * radius * 0.5) / (opt.length * 0.04);
-        const textFontSize = Math.min(maxFontSize, Math.max(minFontSize, dynamicFontSize));
+        const minFontSize = 3;
+        const maxFontSize = 18;
+        const estimatedTextLength = opt.length * (maxFontSize / 2);
+        let dynamicFontSize = (arc * radius * 0.9) / (estimatedTextLength / (maxFontSize / 2));
+        dynamicFontSize = Math.min(maxFontSize, Math.max(minFontSize, dynamicFontSize));
 
-        ctx.font = `${textFontSize}px Arial`;
+        // 如果選項數量非常多（例如超過200個），則不繪製文字，只繪製顏色扇形
+        if (options.length > 200) {
+             dynamicFontSize = minFontSize; // 保持最小字體，即使不顯示
+        }
+
+
+        ctx.font = `${dynamicFontSize}px Arial`;
         ctx.fillStyle = '#f00';
         ctx.strokeStyle = 'rgba(0,0,0,0.005)';
         ctx.lineWidth = 0.005;
@@ -464,8 +484,12 @@
         ctx.textBaseline = 'middle';
 
         const textX = radius + 3;
-        ctx.fillText(opt, textX, 0);
-        ctx.strokeText(opt, textX, 0);
+        // 只有當扇形足夠大時才繪製文字 (弧度大於 1.8 度), 且總數不多於200個
+        if (arc > (Math.PI * 2 / 200) || options.length <= 200) {
+            ctx.fillText(opt, textX, 0);
+            ctx.strokeText(opt, textX, 0);
+        }
+        // 如果 options.length > 200 且 arc 很小，則不繪製文字，這樣可以減輕渲染負擔並使扇形更清晰
 
         ctx.restore();
       });
@@ -473,20 +497,22 @@
       ctx.setTransform(window.devicePixelRatio || 1, 0, 0, window.devicePixelRatio || 1, 0, 0);
 
       const pointerBaseWidth = 80;
-      const pointerHeight = 90;
+      const pointerHeight = 120;
 
       const visualCenterX = (canvas.width / (window.devicePixelRatio || 1)) / 2;
       const visualCenterY = (canvas.height / (window.devicePixelRatio || 1)) / 2;
 
-      const approximateMaxTextLength = 100;
-      const outermostTextEdge = radius + 3 + approximateMaxTextLength;
+      const currentMaxTextLength = Math.max(...options.map(o => ctx.measureText(o).width));
+      const outermostTextEdgeYCoord = visualCenterY - (radius + 3 + currentMaxTextLength);
 
-      const pointerY = visualCenterY - outermostTextEdge - (pointerHeight * 0.5) - 5;
+      const pointerTipY = outermostTextEdgeYCoord - 20;
+
+      const pointerBaseY = pointerTipY + pointerHeight;
 
       ctx.beginPath();
-      ctx.moveTo(visualCenterX - pointerBaseWidth / 2, pointerY);
-      ctx.lineTo(visualCenterX + pointerBaseWidth / 2, pointerY);
-      ctx.lineTo(visualCenterX, visualCenterY - outermostTextEdge - 5);
+      ctx.moveTo(visualCenterX - pointerBaseWidth / 2, pointerBaseY);
+      ctx.lineTo(visualCenterX + pointerBaseWidth / 2, pointerBaseY);
+      ctx.lineTo(visualCenterX, pointerTipY);
       ctx.closePath();
       ctx.fillStyle = 'red';
       ctx.fill();
@@ -546,6 +572,7 @@
 
       finalStartAngle += (Math.floor(totalRotation / (Math.PI * 2)) + 10) * (Math.PI * 2);
 
+
       function animateSpin(currentTime) {
         if (!startTimestamp) startTimestamp = currentTime;
         const elapsed = currentTime - startTimestamp;
@@ -586,7 +613,7 @@
         } else {
             urlInputContainer.style.display = 'flex';
         }
-        csvUrlInput.value = defaultCsvUrl; // 顯示預設 URL
+        csvUrlInput.value = defaultCsvUrl;
         resultDiv.innerText = "";
         resultDiv.classList.remove('show');
     };
